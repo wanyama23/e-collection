@@ -22,6 +22,62 @@ def home():
 
 
 
+# @app.route('/admin', methods=['POST'])
+# def create_admin():
+#     data = request.get_json()
+#     new_admin = Admin(
+#         username=data['username'],
+#         email=data['email'],
+#         contact=data.get('contact'),  # Optional field
+#         password=data['password']
+#     )
+#     db.session.add(new_admin)
+#     db.session.commit()
+#     return jsonify({'message': 'Admin created successfully'}), 201
+
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    if request.method == 'GET':
+        # Retrieve all admins (list view)
+        admins = Admin.query.all()
+        admin_list = [{'id': admin.id, 'username': admin.username, 'email': admin.email} for admin in admins]
+        return jsonify(admin_list), 200
+    elif request.method == 'POST':
+        # Create a new admin
+        data = request.get_json()
+        new_admin = Admin(
+            username=data['username'],
+            email=data['email'],
+            contact=data.get('contact'),  # Optional field
+            password=data['password']
+        )
+        db.session.add(new_admin)
+        db.session.commit()
+        return jsonify({'message': 'Admin created successfully'}), 201
+
+@app.route('/admin/<int:admin_id>', methods=['GET', 'PUT', 'DELETE'])
+def admin_details(admin_id):
+    admin = Admin.query.get_or_404(admin_id)
+    if request.method == 'GET':
+        # Retrieve admin details (single view)
+        return jsonify({'id': admin.id, 'username': admin.username, 'email': admin.email}), 200
+    elif request.method == 'PUT':
+        # Update admin details
+        data = request.get_json()
+        admin.username = data['username']
+        admin.email = data['email']
+        admin.contact = data.get('contact')  # Optional field
+        db.session.commit()
+        return jsonify({'message': 'Admin updated successfully'}), 200
+    elif request.method == 'DELETE':
+        # Delete an admin
+        db.session.delete(admin)
+        db.session.commit()
+        return jsonify({'message': 'Admin deleted successfully'}), 200
+
+
+
 # Create a route to get all products
 # @app.route('/products', methods=['GET'])
 # def get_products():
@@ -31,45 +87,45 @@ def home():
 
 
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
+# @app.route('/signup', methods=['GET', 'POST'])
+# def signup():
+#     if request.method == 'POST':
+#         username = request.form.get('username')
+#         email = request.form.get('email')
+#         password = request.form.get('password')
 
-        hashed_password = generate_password_hash(password, method='sha256')
-        new_admin = Admin(username=username, email=email, password=hashed_password)
+#         hashed_password = generate_password_hash(password, method='sha256')
+#         new_admin = Admin(username=username, email=email, password=hashed_password)
 
-        db.session.add(new_admin)
-        db.session.commit()
+#         db.session.add(new_admin)
+#         db.session.commit()
 
-        flash('Account created successfully!', 'success')
-        return redirect(url_for('login'))
+#         flash('Account created successfully!', 'success')
+#         return redirect(url_for('login'))
 
-    return render_template('signup.html')  # Create a signup form template
+#     return render_template('signup.html')  # Create a signup form template
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+# @app.route('/login', methods=['GET', 'POST'])
+# def login():
+#     if request.method == 'POST':
+#         email = request.form.get('email')
+#         password = request.form.get('password')
 
-        admin = Admin.query.filter_by(email=email).first()
+#         admin = Admin.query.filter_by(email=email).first()
 
-        if admin and check_password_hash(admin.password, password):
-            # Log in the user (you can use Flask-Login for session management)
-            flash('Logged in successfully!', 'success')
-            return redirect(url_for('dashboard'))
+#         if admin and check_password_hash(admin.password, password):
+#             # Log in the user (you can use Flask-Login for session management)
+#             flash('Logged in successfully!', 'success')
+#             return redirect(url_for('dashboard'))
 
-        flash('Login failed. Please check your credentials.', 'danger')
+#         flash('Login failed. Please check your credentials.', 'danger')
 
-    return render_template('login.html')  # Create a login form template
+#     return render_template('login.html')  # Create a login form template
 
-@app.route('/dashboard')
-def dashboard():
-    # Display the admin dashboard (requires authentication)
-    return render_template('dashboard.html')  # Create a dashboard template
+# @app.route('/dashboard')
+# def dashboard():
+#     # Display the admin dashboard (requires authentication)
+#     return render_template('dashboard.html')  # Create a dashboard template
 
 # ,,,,,,,,,,,,,,,,,,,,,, PURCHASES ROUTE,,,,,,,,,,,,,,,,,,,,,,,,,
 @app.route('/purchases', methods=['POST'])
