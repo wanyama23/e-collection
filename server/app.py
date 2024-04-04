@@ -3,18 +3,23 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from sqlalchemy import event
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+
 
 from models import db, Admin, Product, Sale, NewSale, Supplier, Purchase, Customer
 
 app = Flask(__name__)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SECRET_KEY'] = 'your-secret-key'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 migrate = Migrate(app, db)
 
 db.init_app(app)
-
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
 
 @app.route('/')
 def home():
@@ -75,6 +80,38 @@ def admin_details(admin_id):
         db.session.delete(admin)
         db.session.commit()
         return jsonify({'message': 'Admin deleted successfully'}), 200
+    
+# ......................AUTHENTICATION................................
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+    new_user = Admin(username=data['username'], email=data['email'], password=hashed_password)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({'message': 'User created successfully'}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    user = Admin.query.filter_by(email=data['email']).first()
+    if user and bcrypt.check_password_hash(user.password, data['password']):
+        access_token = create_access_token(identity=user.id)
+        return jsonify({'access_token': access_token}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401    
+
+# @app.route('/logout', methods=['POST'])
+# @jwt_required()
+# def logout():
+#     # You can add any additional logout logic here
+#     return jsonify({'message': 'Logged out successfully'}), 200
+
+@app.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+   
+    return jsonify({'message': 'Logged out successfully'}), 200
+
 
 
 
