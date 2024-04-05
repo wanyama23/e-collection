@@ -165,57 +165,34 @@ def logout():
 #     return render_template('dashboard.html')  # Create a dashboard template
 
 # ,,,,,,,,,,,,,,,,,,,,,, PURCHASES ROUTE,,,,,,,,,,,,,,,,,,,,,,,,,
+
+
+@app.route('/purchases', methods=['GET'])
+def get_all_purchases():
+    try:
+        purchases = Purchase.query.all()
+        return jsonify([purchase.__repr__() for purchase in purchases])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route to create a new purchase
 @app.route('/purchases', methods=['POST'])
 def create_purchase():
-    data = request.get_json()
-    if not all(key in data for key in ('product_id', 'customer_id', 'quantity')):
-        return jsonify(message="Missing required fields"), 400
+    try:
+        data = request.get_json()
+        new_purchase = Purchase(
+            product_id=data['product_id'],
+            customer_id=data['customer_id'],
+            quantity=data['quantity']
+        )
+        db.session.add(new_purchase)
+        db.session.commit()
+        return jsonify({'message': 'Purchase created successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    new_purchase = Purchase(
-        product_id=data['product_id'],
-        customer_id=data['customer_id'],
-        quantity=data['quantity']
-    )
-    db.session.add(new_purchase)
-    db.session.commit()
-    return jsonify(message="Purchase created successfully", purchase_id=new_purchase.id), 201
 
-@app.route('/purchases/<int:purchase_id>', methods=['GET'])
-def get_purchase(purchase_id):
-    purchase = Purchase.query.get(purchase_id)
-    if not purchase:
-        return jsonify(message="Purchase not found"), 404
-    # Serialize the purchase data (you can use a schema or manual serialization)
-    return jsonify(purchase={
-        'id': purchase.id,
-        'product_id': purchase.product_id,
-        'customer_id': purchase.customer_id,
-        'quantity': purchase.quantity,
-        'purchase_date': purchase.purchase_date.isoformat()  # Convert to ISO format
-    }), 200
 
-@app.route('/purchases/<int:purchase_id>', methods=['PUT'])
-def update_purchase(purchase_id):
-    data = request.get_json()
-    purchase = Purchase.query.get(purchase_id)
-    if not purchase:
-        return jsonify(message="Purchase not found"), 404
-
-    # Update fields if provided in the request data
-    purchase.product_id = data.get('product_id', purchase.product_id)
-    purchase.customer_id = data.get('customer_id', purchase.customer_id)
-    purchase.quantity = data.get('quantity', purchase.quantity)
-    db.session.commit()
-    return jsonify(message="Purchase updated successfully"), 200
-
-@app.route('/purchases/<int:purchase_id>', methods=['DELETE'])
-def delete_purchase(purchase_id):
-    purchase = Purchase.query.get(purchase_id)
-    if not purchase:
-        return jsonify(message="Purchase not found"), 404
-    db.session.delete(purchase)
-    db.session.commit()
-    return jsonify(message="Purchase deleted successfully"), 200
 
 
 # ,,,,,,,,,,,,,,,,,,,,,,,,SUPPLIERS ROUTE,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -423,6 +400,59 @@ def delete_customer(customer_id):
 
 
 
+# .................PRODUCT ROUTE...........................................
+@app.route('/products', methods=['GET'])
+def get_products():
+    # Retrieve all products from the database
+    products = Product.query.all()
+    return {'products': [product.to_dict() for product in products]}
+
+@app.route('/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    # Retrieve a specific product by ID
+    product = Product.query.get_or_404(product_id)
+    return product.to_dict()
+
+@app.route('/products', methods=['POST'])
+def create_product():
+    # Create a new product based on data from the request
+    data = request.get_json()
+    new_product = Product(
+        name=data.get('name'),
+        price=data.get('price'),
+        description=data.get('description'),
+        image_url=data.get('image_url'),
+        quantity=data.get('quantity'),
+        admin_id=data.get('admin_id')
+    )
+    db.session.add(new_product)
+    db.session.commit()
+    return {'message': 'Product created successfully'}, 201
+
+@app.route('/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    # Update an existing product by ID
+    product = Product.query.get_or_404(product_id)
+    data = request.get_json()
+    product.name = data.get('name')
+    product.price = data.get('price')
+    product.description = data.get('description')
+    product.image_url = data.get('image_url')
+    product.quantity = data.get('quantity')
+    product.admin_id = data.get('admin_id')
+    db.session.commit()
+    return {'message': 'Product updated successfully'}
+
+@app.route('/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    # Delete a product by ID
+    product = Product.query.get_or_404(product_id)
+    db.session.delete(product)
+    db.session.commit()
+    return {'message': 'Product deleted successfully'}
+
+
+
 
 @event.listens_for(NewSale, 'after_insert')
 def add_to_sales(mapper, connection, target):
@@ -438,6 +468,8 @@ def add_to_sales(mapper, connection, target):
     db.session.commit()
 
 # Now, when a NewSale record is inserted, it will automatically create a corresponding Sale record.
+
+
 
 
 
@@ -536,3 +568,57 @@ if __name__ == '__main__':
 #     sale.quantity = data.get('quantity', sale.quantity)
 #     db.session.commit()
 #     return jsonify({"message": "Sale updated successfully!"}), 200
+
+
+
+# @app.route('/purchases', methods=['POST'])
+# def create_purchase():
+#     data = request.get_json()
+#     if not all(key in data for key in ('product_id', 'customer_id', 'quantity')):
+#         return jsonify(message="Missing required fields"), 400
+
+#     new_purchase = Purchase(
+#         product_id=data['product_id'],
+#         customer_id=data['customer_id'],
+#         quantity=data['quantity']
+#     )
+#     db.session.add(new_purchase)
+#     db.session.commit()
+#     return jsonify(message="Purchase created successfully", purchase_id=new_purchase.id), 201
+
+# @app.route('/purchases/<int:purchase_id>', methods=['GET'])
+# def get_purchase(purchase_id):
+#     purchase = Purchase.query.get(purchase_id)
+#     if not purchase:
+#         return jsonify(message="Purchase not found"), 404
+#     # Serialize the purchase data (you can use a schema or manual serialization)
+#     return jsonify(purchase={
+#         'id': purchase.id,
+#         'product_id': purchase.product_id,
+#         'customer_id': purchase.customer_id,
+#         'quantity': purchase.quantity,
+#         'purchase_date': purchase.purchase_date.isoformat()  # Convert to ISO format
+#     }), 200
+
+# @app.route('/purchases/<int:purchase_id>', methods=['PUT'])
+# def update_purchase(purchase_id):
+#     data = request.get_json()
+#     purchase = Purchase.query.get(purchase_id)
+#     if not purchase:
+#         return jsonify(message="Purchase not found"), 404
+
+#     # Update fields if provided in the request data
+#     purchase.product_id = data.get('product_id', purchase.product_id)
+#     purchase.customer_id = data.get('customer_id', purchase.customer_id)
+#     purchase.quantity = data.get('quantity', purchase.quantity)
+#     db.session.commit()
+#     return jsonify(message="Purchase updated successfully"), 200
+
+# @app.route('/purchases/<int:purchase_id>', methods=['DELETE'])
+# def delete_purchase(purchase_id):
+#     purchase = Purchase.query.get(purchase_id)
+#     if not purchase:
+#         return jsonify(message="Purchase not found"), 404
+#     db.session.delete(purchase)
+#     db.session.commit()
+#     return jsonify(message="Purchase deleted successfully"), 200

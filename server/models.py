@@ -67,9 +67,20 @@ class Supplier(db.Model):
         return f"Supplier(id={self.id}, name='{self.name}', email='{self.email}')"
 
 
+# class Purchase(db.Model):
+#     __tablename__ = "purchase"
+#     id = db.Column(db.Integer, primary_key=True)
+#     product_id = db.Column(db.Integer, nullable=False)
+#     customer_id = db.Column(db.Integer, nullable=False)
+#     quantity = db.Column(db.Integer, nullable=False)
+#     purchase_date = db.Column(db.DateTime, default=db.func.now(), nullable=False)
+
+#     def __repr__(self):
+#         return f"Purchase(id={self.id}, product_id={self.product_id}, customer_id={self.customer_id})"
+
 class Purchase(db.Model):
     __tablename__ = "purchase"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     product_id = db.Column(db.Integer, nullable=False)
     customer_id = db.Column(db.Integer, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
